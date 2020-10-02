@@ -8,9 +8,13 @@ import queue
 import datetime
 import faker
 import os
+import socket
+
+ 
 
 # We'll use the local file if there isn't one passed in an env var
-SSL_CA_CERTS=os.getenv('DOCDB_SSL_CA_CERTS', 'rds-combined-ca-bundle.pem')
+DOCDB_SSL_CA_CERTS=os.getenv('DOCDB_SSL_CA_CERTS', 'rds-combined-ca-bundle.pem')
+
 # https://docs.aws.amazon.com/documentdb/latest/developerguide/limits.html
 CONNECTION_LIMIT=int(os.getenv('DOCDB_CONNECTION_LIMIT', '1500'))
 DOCDB_ENDPOINT=os.getenv('DOCDB_ENDPOINT', 'ERROR')
@@ -34,6 +38,27 @@ def debug_info():
 
     print('Running iot_loadgen with %d threads' % (NUM_WRITER_THREADS))
     print('DocumentDB Endpoint: %s' % (DOCDB_ENDPOINT))
+
+class SocketThread (threading.Thread):
+    def __init__(self, name, queue):
+        threading.Thread.__init__(self)
+        self.name = name
+        self.queue = queue
+        self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        self.sock.bind(('0.0.0.0', 5000))
+        self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        self.sock.settimeout(1) # timeout for listening
+        self.sock.listen(1)
+ 
+    def run(self):
+        print ("Starting " + self.name)
+        while self.queue.empty():
+            try:
+                connection, client_address = self.sock.accept()
+            except socket.timeout:
+                pass
+
+        print ("Exiting " + self.name)
 
 class WriterThread (threading.Thread):
    def __init__(self, threadId, name, queue, mongoClient):
@@ -61,7 +86,7 @@ signal.signal(signal.SIGINT, signal_handler)
 debug_info()
 
 ##Create a MongoDB client, open a connection to Amazon DocumentDB as a replica set and specify the read preference as secondary preferred
-mongoClient = pymongo.MongoClient('mongodb://' + DOCDB_ENDPOINT + ':27017/?ssl=true&ssl_ca_certs=rds-combined-ca-bundle.pem&replicaSet=rs0&readPreference=primaryPreferred', maxPoolSize=CONNECTION_LIMIT, username='docdb', password='password') 
+mongoClient = pymongo.MongoClient('mongodb://' + DOCDB_ENDPOINT + ':27017/?ssl=true&ssl_ca_certs=' + DOCDB_SSL_CA_CERTS + '&replicaSet=rs0&readPreference=primaryPreferred', maxPoolSize=CONNECTION_LIMIT, username='docdb', password='password') 
 
 ##Specify the database to be used
 db = mongoClient[DB_NAME]
@@ -74,6 +99,11 @@ def readDeviceIds():
     print('Working with %d Device IDs' % (len(deviceIds)))
 
 readDeviceIds()
+
+q = queue.Queue()
+socketThread = SocketThread("Thread-Socket", q)
+socketThread.start()
+threads.append({'thread' : socketThread, 'queue' : q})
 
 for x in range(NUM_WRITER_THREADS):
     threadDict = dict()
