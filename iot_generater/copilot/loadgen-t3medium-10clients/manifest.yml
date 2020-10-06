@@ -1,33 +1,32 @@
-# The manifest for the "loadgen-4xl" service.
+# The manifest for the "loadgen-t3medium-10clients" service.
 # Read the full specification for the "Backend Service" type at:
 #  https://github.com/aws/copilot-cli/wiki/Manifests#backend-svc
 
 # Your service name will be used in naming your resources like log groups, ECS services, etc.
-name: loadgen-4xl
+name: loadgen-t3medium-10clients
 
-# Your service is reachable at "http://loadgen-4xl.${COPILOT_SERVICE_DISCOVERY_ENDPOINT}:5000" but is not public.
+# Your service is reachable at "http://loadgen-t3medium-10clients.${COPILOT_SERVICE_DISCOVERY_ENDPOINT}:5001" but is not public.
 type: Backend Service
 
 image:
   # Docker build arguments. You can specify additional overrides here. Supported: dockerfile, context, args
   build: Dockerfile
   # Port exposed through your container to route traffic to it.
-  port: 5000
+  port: 5001
 
 # Number of CPU units for the task.
 cpu: 4096
 # Amount of memory in MiB used by the task.
 memory: 8192
 # Number of tasks that should be running in your service.
-count: 1
+count: 10
 
 # Optional fields for more advanced use-cases.
 #
 variables:                    # Pass environment variables as key value pairs.
-#  LOG_LEVEL: info
-  CONNECTION_LIMIT: 1500
   DOCDB_SSL_CA_CERTS: /tmp/rds-combined-ca-bundle.pem
-  DOCDB_ENDPOINT: docdb-4xlarge.cluster-caw4ixqiolg1.us-east-2.docdb.amazonaws.com
+  PORT: 5001
+  DOCDB_ENDPOINT: docdb-t3medium-10-clients.cluster-caw4ixqiolg1.us-east-2.docdb.amazonaws.com
 
 #secrets:                      # Pass secrets from AWS Systems Manager (SSM) Parameter Store.
 #  GITHUB_TOKEN: GITHUB_TOKEN  # The key is the name of the environment variable, the value is the name of the SSM      parameter.

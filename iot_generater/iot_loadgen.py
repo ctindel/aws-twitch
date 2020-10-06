@@ -10,10 +10,9 @@ import faker
 import os
 import socket
 
- 
-
 # We'll use the local file if there isn't one passed in an env var
 DOCDB_SSL_CA_CERTS=os.getenv('DOCDB_SSL_CA_CERTS', 'rds-combined-ca-bundle.pem')
+PORT=int(os.getenv('PORT', '5000'))
 
 # https://docs.aws.amazon.com/documentdb/latest/developerguide/limits.html
 CONNECTION_LIMIT=int(os.getenv('DOCDB_CONNECTION_LIMIT', '1500'))
@@ -45,7 +44,7 @@ class SocketThread (threading.Thread):
         self.name = name
         self.queue = queue
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        self.sock.bind(('0.0.0.0', 5000))
+        self.sock.bind(('0.0.0.0', PORT))
         self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         self.sock.settimeout(1) # timeout for listening
         self.sock.listen(1)
@@ -60,27 +59,36 @@ class SocketThread (threading.Thread):
 
         print ("Exiting " + self.name)
 
-class WriterThread (threading.Thread):
-   def __init__(self, threadId, name, queue, mongoClient):
-      threading.Thread.__init__(self)
-      self.threadId = threadId
-      self.name = name
-      self.queue = queue
-      self.mongoClient = mongoClient
-   def run(self):
-      print ("Starting " + self.name)
-      while self.queue.empty():
-          deviceId = random.choice(deviceIds)
-          location = fake.local_latlng(country_code='US', coords_only=True)
-          payload = {
-              'deviceId' : deviceId,
-              'timestamp' : datetime.datetime.utcnow(),
-              'status' : random.choice(PAYLOAD_STATUS_OPTIONS),
-              'lastOperator' : fake.name(),
-              'location' : {'type' : 'Point', 'coordinates' : [location[1], location[0]]}
-          }    
-          db[DATA_COLL_NAME].insert_one(payload)
-      print ("Exiting " + self.name)
+class WorkerThread (threading.Thread):
+    def __init__(self, threadId, name, queue, mongoClient):
+        threading.Thread.__init__(self)
+        self.threadId = threadId
+        self.name = name
+        self.queue = queue
+        self.mongoClient = mongoClient
+
+    def write(self):
+        deviceId = random.choice(deviceIds)
+        location = fake.local_latlng(country_code='US', coords_only=True)
+        payload = {
+            'deviceId' : deviceId,
+            'timestamp' : datetime.datetime.utcnow(),
+          'status' : random.choice(PAYLOAD_STATUS_OPTIONS),
+            'lastOperator' : fake.name(),
+            'location' : {'type' : 'Point', 'coordinates' : [location[1], location[0]]}
+        }    
+        db[DATA_COLL_NAME].insert_one(payload)
+   
+    def read(self):
+        
+    def run(self):
+        print ("Starting " + self.name)
+        while self.queue.empty():
+            if random.randint(0, 1) == 0:
+                self.write()
+            else:
+                self.read()
+        print ("Exiting " + self.name)
 
 signal.signal(signal.SIGINT, signal_handler)
 debug_info()
@@ -108,7 +116,7 @@ threads.append({'thread' : socketThread, 'queue' : q})
 for x in range(NUM_WRITER_THREADS):
     threadDict = dict()
     q = queue.Queue()
-    thread = WriterThread(x, "Thread-" + str(x), q, mongoClient)
+    thread = WorkerThread(x, "Thread-" + str(x), q, mongoClient)
     thread.start()
     threadDict['thread'] = thread
     threadDict['queue'] = q
