@@ -28,6 +28,6 @@ copilot init --app docdb-loadgen --svc loadgen-t3medium-1client --svc-type "Back
 copilot init --app docdb-loadgen --svc loadgen-t3medium-10clients --svc-type "Backend Service" --dockerfile ./Dockerfile --port 5001
 copilot init --app docdb-loadgen --svc loadgen-t3medium-50clients --svc-type "Backend Service" --dockerfile ./Dockerfile --port 5002
 
-copilot svc deploy loadgen-4xl-1writer
-copilot svc deploy loadgen-4xl-10writers
-copilot svc deploy loadgen-4xl-50writers
+copilot svc deploy -n loadgen-t3medium-1client
+copilot svc deploy -n loadgen-t3medium-10clients
+copilot svc deploy -n loadgen-t3medium-50clients

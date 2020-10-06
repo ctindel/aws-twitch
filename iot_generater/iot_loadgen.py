@@ -1,3 +1,5 @@
+#!/usr/bin/python 
+
 import pymongo
 import sys
 import threading
@@ -80,6 +82,7 @@ class WorkerThread (threading.Thread):
         db[DATA_COLL_NAME].insert_one(payload)
    
     def read(self):
+        pass
         
     def run(self):
         print ("Starting " + self.name)
