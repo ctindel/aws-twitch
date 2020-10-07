@@ -8,4 +8,5 @@ ADD rds-combined-ca-bundle.pem /tmp
 RUN pip install -r /tmp/requirements.txt
 RUN chmod 755 /tmp/entrypoint.sh
 
-ENTRYPOINT [ "/tmp/entrypoint.sh" ]
+#ENTRYPOINT [ "/tmp/entrypoint.sh" ]
+CMD [ "python", "/tmp/iot_loadgen.py" ]

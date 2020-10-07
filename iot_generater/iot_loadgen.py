@@ -29,11 +29,11 @@ deviceIds = []
 threads = []
 fake = faker.Faker()
 
-def signal_handler(sig, frame):
+def signalHandler(sig, frame):
     for t in threads:
         t['queue'].put('TERMINATING')
 
-def debug_info():
+def debugInfo():
     if DOCDB_ENDPOINT == 'ERROR':
         raise Exception('Undefined environment variable DOCDB_ENDPOINT')
 
@@ -75,14 +75,19 @@ class WorkerThread (threading.Thread):
         payload = {
             'deviceId' : deviceId,
             'timestamp' : datetime.datetime.utcnow(),
-          'status' : random.choice(PAYLOAD_STATUS_OPTIONS),
+            'status' : random.choice(PAYLOAD_STATUS_OPTIONS),
             'lastOperator' : fake.name(),
             'location' : {'type' : 'Point', 'coordinates' : [location[1], location[0]]}
         }    
         db[DATA_COLL_NAME].insert_one(payload)
    
     def read(self):
-        pass
+        deviceId = random.choice(deviceIds)
+        end = datetime.datetime.utcnow()
+        start = end - datetime.timedelta(minutes=15)
+        items = db[DATA_COLL_NAME].find({'deviceId' : deviceId, 'timestamp' : {'$gte' : start, '$lte' : end}})
+        for doc in items:
+            print (doc)
         
     def run(self):
         print ("Starting " + self.name)
@@ -93,8 +98,8 @@ class WorkerThread (threading.Thread):
                 self.read()
         print ("Exiting " + self.name)
 
-signal.signal(signal.SIGINT, signal_handler)
-debug_info()
+signal.signal(signal.SIGINT, signalHandler)
+debugInfo()
 
 ##Create a MongoDB client, open a connection to Amazon DocumentDB as a replica set and specify the read preference as secondary preferred
 mongoClient = pymongo.MongoClient('mongodb://' + DOCDB_ENDPOINT + ':27017/?ssl=true&ssl_ca_certs=' + DOCDB_SSL_CA_CERTS + '&replicaSet=rs0&readPreference=primaryPreferred', maxPoolSize=CONNECTION_LIMIT, username='docdb', password='password') 
