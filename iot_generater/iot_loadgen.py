@@ -103,7 +103,6 @@ debugInfo()
 
 ##Create a MongoDB client, open a connection to Amazon DocumentDB as a replica set and specify the read preference as secondary preferred
 mongoClient = pymongo.MongoClient('mongodb://' + DOCDB_ENDPOINT + ':27017/?ssl=true&ssl_ca_certs=' + DOCDB_SSL_CA_CERTS + '&replicaSet=rs0&readPreference=primaryPreferred', maxPoolSize=CONNECTION_LIMIT, username='docdb', password='password') 
-
 ##Specify the database to be used
 db = mongoClient[DB_NAME]
 

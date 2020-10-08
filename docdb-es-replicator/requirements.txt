@@ -1,0 +1,4 @@
+pymongo
+faker
+boto3
+elasticsearch

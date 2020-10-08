@@ -1,0 +1,26 @@
+python3 -m venv .venv
+. .venv/bin/activate
+pip install -r requirements.txt
+
+copilot init --app twitch --svc docdb-replicator --svc-type "Backend Service" --dockerfile ./Dockerfile --port 5000
+
+
+# Number of CPU units for the task.
+cpu: 4096
+# Amount of memory in MiB used by the task.
+memory: 8192
+# Number of tasks that should be running in your service.
+count: 1
+
+# Optional fields for more advanced use-cases.
+#
+variables:                    # Pass environment variables as key value pairs.
+  DOCDB_SSL_CA_CERTS: /tmp/rds-combined-ca-bundle.pem
+  PORT: 5000
+  DOCDB_ENDPOINT: docdb-4xl-1writer.cluster-caw4ixqiolg1.us-east-2.docdb.amazonaws.com
+  ELASTICSEARCH_URI: https://vpc-docdb-es-test3-gwggtmzzqetxggl2h2cvl2cboe.us-east-2.es.amazonaws.com
+
+
+copilot svc deploy -n docdb-replicator
+
+copilot svc logs -n docdb-replicator --follow
